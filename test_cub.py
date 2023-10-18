@@ -71,10 +71,10 @@ example["input_ids"] = tokenizer(
 ).input_ids
 
 # Image
-cub_dset = ImageFolder('/usr4/cs591/samarthm/projects/synthetic/data/synthetic-cdm/cub/Real')
+cub_dset = ImageFolder('/gpfs/u/home/LMTM/LMTMsmms/scratch/data/synthetic-cdm/cub/Real')
 
 RNG = np.random.RandomState(44)
-rand_idxs = RNG.choice(len(cub_dset), 10, replace=False)
+rand_idxs = RNG.choice(len(cub_dset), 2, replace=False)
 
 for i, idx in enumerate(rand_idxs):
     image = Image.open(cub_dset.imgs[idx][0]).convert('RGB').resize((512, 512))
