@@ -1,0 +1,11 @@
+/gpfs/u/home/LMTM/LMTMsmms/scratch/data/synthetic-cdm/cub/Real/198.Rock_Wren/Rock_Wren_0021_189175.jpg 0
+/gpfs/u/home/LMTM/LMTMsmms/scratch/data/synthetic-cdm/cub/Real/199.Winter_Wren/Winter_Wren_0113_189558.jpg 0
+/gpfs/u/home/LMTM/LMTMsmms/scratch/data/synthetic-cdm/cub/Real/199.Winter_Wren/Winter_Wren_0029_190376.jpg 0
+/gpfs/u/home/LMTM/LMTMsmms/scratch/data/synthetic-cdm/cub/Real/199.Winter_Wren/Winter_Wren_0047_190390.jpg 0
+/gpfs/u/home/LMTM/LMTMsmms/scratch/data/synthetic-cdm/cub/Real/199.Winter_Wren/Winter_Wren_0093_189686.jpg 0
+/gpfs/u/home/LMTM/LMTMsmms/scratch/data/synthetic-cdm/cub/Real/199.Winter_Wren/Winter_Wren_0026_189816.jpg 0
+/gpfs/u/home/LMTM/LMTMsmms/scratch/data/synthetic-cdm/cub/Real/200.Common_Yellowthroat/Common_Yellowthroat_0069_190400.jpg 0
+/gpfs/u/home/LMTM/LMTMsmms/scratch/data/synthetic-cdm/cub/Real/200.Common_Yellowthroat/Common_Yellowthroat_0049_190708.jpg 0
+/gpfs/u/home/LMTM/LMTMsmms/scratch/data/synthetic-cdm/cub/Real/200.Common_Yellowthroat/Common_Yellowthroat_0111_190569.jpg 0
+/gpfs/u/home/LMTM/LMTMsmms/scratch/data/synthetic-cdm/cub/Real/200.Common_Yellowthroat/Common_Yellowthroat_0029_190403.jpg 0
+/gpfs/u/home/LMTM/LMTMsmms/scratch/data/synthetic-cdm/cub/Real/200.Common_Yellowthroat/Common_Yellowthroat_0072_190402.jpg 0
