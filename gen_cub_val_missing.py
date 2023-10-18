@@ -85,9 +85,9 @@ for idx, word in enumerate(words):
     if word == placeholder_string:
         placeholder_index = idx + 1
 
-example["index"] = torch.tensor(placeholder_index).unsqueeze(0).repeat(args.batch_size)
+orig_index = torch.tensor(placeholder_index).unsqueeze(0).repeat(args.batch_size)
 
-example["input_ids"] = tokenizer(
+orig_input_ids = tokenizer(
     text,
     padding="max_length",
     truncation=True,
@@ -112,6 +112,9 @@ loader = torch.utils.data.DataLoader(
 for i, batch in enumerate(loader):
     example["pixel_values_clip"] = batch[0]
     example["pixel_values"] = copy.deepcopy(example["pixel_values_clip"])
+    
+    example["index"] = orig_index[:len(batch[0])]
+    example["input_ids"] = orig_input_ids[:len(batch[0])]
     
     example["pixel_values"] = example["pixel_values"].to("cuda:0")
     example["pixel_values_clip"] = example["pixel_values_clip"].to("cuda:0").half()
