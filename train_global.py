@@ -398,7 +398,7 @@ def validation(example, tokenizer, image_encoder, text_encoder, unet, mapper, va
             (example["pixel_values"].shape[0], unet.in_channels, 64, 64)
         )
     else:
-        generator = torch.manual_seed(seed)
+        generator = torch.Generator().manual_seed(seed)
         latents = torch.randn(
             (example["pixel_values"].shape[0], unet.in_channels, 64, 64), generator=generator,
         )

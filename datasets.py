@@ -8,7 +8,6 @@ import torchvision
 import numpy as np
 import torch
 import random
-import albumentations as A
 import copy
 import cv2
 import pandas as pd
