@@ -28,7 +28,7 @@ for src, tgt in itertools.permutations(domains, 2):
             gpu_memory='20G',
         ))
 
-        proc_arr += ['python', 'gen_cub.py']
+        proc_arr += ['python', 'gen_data.py']
         proc_arr += ['--dataset', dataset]
         proc_arr += ['--source', src]
         proc_arr += ['--target', tgt]

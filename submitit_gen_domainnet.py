@@ -9,7 +9,7 @@ import submitit
 import copy
 import gen_data
 
-NUM_JOBS = 5
+NUM_JOBS = 10
 
 class Trainer:
     def __init__(self, args) -> None:
@@ -19,13 +19,14 @@ class Trainer:
         gen_data.main(self.args)
         
 if __name__ == '__main__':
-    dataset = 'cub'
-    domains = ['Real', 'Painting']
+    dataset = 'domainnet'
+    domains = ['clipart', 'painting', 'sketch']
 
     for src, tgt in itertools.permutations(domains, 2):
         for job_idx in range(NUM_JOBS):
             scenario = f'{src[0]}2{tgt[0]}'
             root_dir = '/gpfs/u/home/LMTM/LMTMsmms/scratch/data/synthetic-cdm/synthetic_data/elite_global'
+            filelist_root = '/gpfs/u/home/LMTM/LMTMsmms/scratch/projects/synthetic-cdm/CDS_pretraining/data'
             expt_name = f'elite_global_{scenario}_job_{job_idx}'
             
             args = gen_data.parse_args([])
@@ -33,7 +34,8 @@ if __name__ == '__main__':
             args.source = src
             args.target = tgt
             args.root_dir = root_dir
-            args.batch_size = 12
+            args.filelist_root = filelist_root
+            args.batch_size = 6
             args.num_jobs = NUM_JOBS
             args.job_idx = job_idx
             

@@ -28,6 +28,11 @@ TEMPLATES = {
         'Real' : 'A colorful realistic photo of a S bird.',
         'Painting' : 'A painting of a S bird.',
     },
+    'domainnet': {
+        'clipart' : 'A clipart image of S.',
+        'painting': 'A painting of S.',
+        'sketch': 'A pencil/charcoal sketch of S.',
+    },
 }
 
 def parse_args(args=None):
@@ -40,6 +45,8 @@ def parse_args(args=None):
     parser.add_argument('--seed', type=int, default=42, help='random seed')
     parser.add_argument('--dataset', type=str, default='cub', help='dataset to generate data for')
     parser.add_argument('--root_dir', type=str, default='/projectnb/ivc-ml/samarth/projects/synthetic/data/synthetic-cdm/synthetic_data/hparams/elite_global')
+    
+    parser.add_argument('--filelist_root', type=str, default='/usr4/cs591/samarthm/projects/synthetic/synthetic-cdm/CDS_pretraining/data')
     return parser.parse_args(args)
 
 def process(image):
@@ -97,19 +104,19 @@ def main(args):
     ).input_ids.repeat(args.batch_size, 1)
 
     # Image
-    cub_dset = Imagelist(f'/usr4/cs591/samarthm/projects/synthetic/synthetic-cdm/CDS_pretraining/data/{args.dataset}/{args.source}_train.txt', transform=get_tensor_clip())
-    # cub_dset = Imagelist(f'/gpfs/u/home/LMTM/LMTMsmms/scratch/projects/synthetic-cdm/CDS_pretraining/data/{args.dataset}/{args.source}_train.txt', transform=get_tensor_clip())
+    dset = Imagelist(Path(args.filelist_root) / f'{args.dataset}/{args.source}_train.txt', transform=get_tensor_clip())
+    # dset = Imagelist(f'/gpfs/u/home/LMTM/LMTMsmms/scratch/projects/synthetic-cdm/CDS_pretraining/data/{args.dataset}/{args.source}_train.txt', transform=get_tensor_clip())
     args.root_dir = Path(args.root_dir) / args.dataset / scenario
 
     if args.num_jobs > 1:
-        cub_dset.mode_self = False
-        curr_idxs = np.array_split(np.arange(len(cub_dset)), args.num_jobs)[args.job_idx]
-        cub_dset = SubsetWIdx(cub_dset, curr_idxs)
-        cub_dset.imgs = [cub_dset.dataset.imgs[i] for i in curr_idxs]
-        cub_dset.labels = cub_dset.dataset.labels[curr_idxs]
+        dset.mode_self = False
+        curr_idxs = np.array_split(np.arange(len(dset)), args.num_jobs)[args.job_idx]
+        dset = SubsetWIdx(dset, curr_idxs)
+        dset.imgs = [dset.dataset.imgs[i] for i in curr_idxs]
+        dset.labels = dset.dataset.labels[curr_idxs]
         
     loader = torch.utils.data.DataLoader(
-        cub_dset, batch_size=args.batch_size, shuffle=False, pin_memory=True, drop_last=False)
+        dset, batch_size=args.batch_size, shuffle=False, pin_memory=True, drop_last=False)
 
     for i, batch in enumerate(loader):
         example["pixel_values_clip"] = batch[0]
