@@ -48,6 +48,7 @@ def parse_args(args=None):
     parser.add_argument('--root_dir', type=str, default='/projectnb/ivc-ml/samarth/projects/synthetic/data/synthetic-cdm/synthetic_data/hparams/elite_global')
     parser.add_argument('--strength', type=float, default=0.5, help='strength of noise addn')
     
+    parser.add_argument('--num_workers', type=int, default=2, help='num workers for dataloader')
     parser.add_argument('--filelist_root', type=str, default='/usr4/cs591/samarthm/projects/synthetic/synthetic-cdm/CDS_pretraining/data')
     return parser.parse_args(args)
 
@@ -106,11 +107,11 @@ def main(args):
     ).input_ids.repeat(args.batch_size, 1)
 
     # Image
-    dset = Imagelist(Path(args.filelist_root) / f'{args.dataset}/{args.source}_train.txt', transform=None)
-    clip_inp_transform = get_tensor_clip()
+    dset = Imagelist(Path(args.filelist_root) / f'{args.dataset}/{args.source}_train.txt', transform=transforms.ToTensor())
+    clip_inp_transform = get_tensor_clip(toTensor=False)
     vae_inp_transform = transforms.Compose([
         transforms.Resize((512, 512), interpolation=PIL.Image.BICUBIC),
-        transforms.ToTensor(),
+        # transforms.ToTensor(),
     ])
     # dset = Imagelist(f'/gpfs/u/home/LMTM/LMTMsmms/scratch/projects/synthetic-cdm/CDS_pretraining/data/{args.dataset}/{args.source}_train.txt', transform=get_tensor_clip())
     args.root_dir = Path(args.root_dir) / args.dataset / scenario
@@ -123,7 +124,7 @@ def main(args):
         dset.labels = dset.dataset.labels[curr_idxs]
         
     loader = torch.utils.data.DataLoader(
-        dset, batch_size=args.batch_size, shuffle=False, pin_memory=True, drop_last=False)
+        dset, batch_size=args.batch_size, shuffle=False, pin_memory=True, drop_last=False, num_workers=args.num_workers)
 
     for i, batch in enumerate(loader):
         example["pixel_values_clip"] = clip_inp_transform(batch[0])
