@@ -9,7 +9,7 @@ import submitit
 import copy
 import gen_data
 
-NUM_JOBS = 10
+NUM_JOBS = 4
 
 class Trainer:
     def __init__(self, args) -> None:
@@ -22,32 +22,32 @@ if __name__ == '__main__':
     dataset = 'domainnet'
     domains = ['clipart', 'painting', 'sketch']
     
-    running_jobs = [
-        'elite_global_p2c_job_7',
-        'elite_global_p2c_job_9',
-        'elite_global_p2s_job_5',
-        'elite_global_p2s_job_6',
-        'elite_global_p2s_job_8',
-        'elite_global_s2c_job_3',
-        'elite_global_s2c_job_5',
-        'elite_global_s2c_job_6',
-        'elite_global_s2p_job_4',
-        'elite_global_s2p_job_7',
-        'elite_global_s2p_job_8',
-        'elite_global_s2p_job_9',
-        'elite_global_c2p_job_0',
-        'elite_global_c2p_job_3',
-        'elite_global_s2c_job_8',
-        'elite_global_s2c_job_9',
-        'elite_global_s2p_job_3',
-        'elite_global_s2p_job_6',
-        'elite_global_s2c_job_1',
-        'elite_global_s2c_job_2',
-        # 'elite_global_s2c_job_7',
-        # 'elite_global_s2c_job_0',
-        'elite_global_s2p_job_2',
-        'elite_global_s2p_job_5',
-    ]
+    # running_jobs = [
+    #     'elite_global_p2c_job_7',
+    #     'elite_global_p2c_job_9',
+    #     'elite_global_p2s_job_5',
+    #     'elite_global_p2s_job_6',
+    #     'elite_global_p2s_job_8',
+    #     'elite_global_s2c_job_3',
+    #     'elite_global_s2c_job_5',
+    #     'elite_global_s2c_job_6',
+    #     'elite_global_s2p_job_4',
+    #     'elite_global_s2p_job_7',
+    #     'elite_global_s2p_job_8',
+    #     'elite_global_s2p_job_9',
+    #     'elite_global_c2p_job_0',
+    #     'elite_global_c2p_job_3',
+    #     'elite_global_s2c_job_8',
+    #     'elite_global_s2c_job_9',
+    #     'elite_global_s2p_job_3',
+    #     'elite_global_s2p_job_6',
+    #     'elite_global_s2c_job_1',
+    #     'elite_global_s2c_job_2',
+    #     # 'elite_global_s2c_job_7',
+    #     # 'elite_global_s2c_job_0',
+    #     'elite_global_s2p_job_2',
+    #     'elite_global_s2p_job_5',
+    # ]
 
     for src, tgt in itertools.permutations(domains, 2):
         if src!='sketch':
@@ -55,18 +55,15 @@ if __name__ == '__main__':
         for job_idx in range(NUM_JOBS):
             scenario = f'{src[0]}2{tgt[0]}'
             root_dir = '/gpfs/u/home/LMTM/LMTMsmms/scratch/data/synthetic-cdm/synthetic_data/elite_global'
-            filelist_root = '/gpfs/u/home/LMTM/LMTMsmms/scratch/projects/synthetic-cdm/CDS_pretraining/data'
+            # filelist_root = '/gpfs/u/home/LMTM/LMTMsmms/scratch/projects/synthetic-cdm/CDS_pretraining/data'
             expt_name = f'elite_global_{scenario}_job_{job_idx}'
-            
-            if expt_name in running_jobs:
-                continue
             
             args = gen_data.parse_args([])
             args.dataset = dataset
             args.source = src
             args.target = tgt
             args.root_dir = root_dir
-            args.filelist_root = filelist_root
+            args.filelist = f'/gpfs/u/home/LMTM/LMTMsmms/scratch/projects/synthetic-cdm/missing_gen_filelists/elite_global_{dataset}_{scenario}.txt'
             args.batch_size = 6
             args.num_jobs = NUM_JOBS
             args.job_idx = job_idx

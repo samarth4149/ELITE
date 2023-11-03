@@ -47,6 +47,7 @@ def parse_args(args=None):
     parser.add_argument('--root_dir', type=str, default='/projectnb/ivc-ml/samarth/projects/synthetic/data/synthetic-cdm/synthetic_data/hparams/elite_global')
     
     parser.add_argument('--filelist_root', type=str, default='/usr4/cs591/samarthm/projects/synthetic/synthetic-cdm/CDS_pretraining/data')
+    parser.add_argument('--filelist', type=str, default='')
     return parser.parse_args(args)
 
 def process(image):
@@ -104,7 +105,10 @@ def main(args):
     ).input_ids.repeat(args.batch_size, 1)
 
     # Image
-    dset = Imagelist(Path(args.filelist_root) / f'{args.dataset}/{args.source}_train.txt', transform=get_tensor_clip())
+    if args.filelist:
+        dset = Imagelist(args.filelist, transform=get_tensor_clip())
+    else:
+        dset = Imagelist(Path(args.filelist_root) / f'{args.dataset}/{args.source}_train.txt', transform=get_tensor_clip())
     # dset = Imagelist(f'/gpfs/u/home/LMTM/LMTMsmms/scratch/projects/synthetic-cdm/CDS_pretraining/data/{args.dataset}/{args.source}_train.txt', transform=get_tensor_clip())
     args.root_dir = Path(args.root_dir) / args.dataset / scenario
 
