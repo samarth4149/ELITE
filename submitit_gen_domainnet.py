@@ -21,6 +21,23 @@ class Trainer:
 if __name__ == '__main__':
     dataset = 'domainnet'
     domains = ['clipart', 'painting', 'sketch']
+    
+    running_jobs = [
+        'elite_global_p2c_job_7',
+        'elite_global_p2c_job_9',
+        'elite_global_p2s_job_5',
+        'elite_global_p2s_job_6',
+        'elite_global_p2s_job_8',
+        'elite_global_s2c_job_3',
+        'elite_global_s2c_job_5',
+        'elite_global_s2c_job_6',
+        'elite_global_s2p_job_4',
+        'elite_global_s2p_job_7',
+        'elite_global_s2p_job_8',
+        'elite_global_s2p_job_9',
+        'elite_global_c2p_job_0',
+        'elite_global_c2p_job_3',
+    ]
 
     for src, tgt in itertools.permutations(domains, 2):
         for job_idx in range(NUM_JOBS):
