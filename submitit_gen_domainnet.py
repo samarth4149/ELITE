@@ -37,6 +37,11 @@ if __name__ == '__main__':
         'elite_global_s2p_job_9',
         'elite_global_c2p_job_0',
         'elite_global_c2p_job_3',
+        'elite_global_s2c_job_8',
+        'elite_global_s2c_job_9',
+        'elite_global_s2p_job_3',
+        'elite_global_s2p_job_6',
+        'elite_global_s2c_job_1',
     ]
 
     for src, tgt in itertools.permutations(domains, 2):
