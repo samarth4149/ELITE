@@ -376,8 +376,17 @@ def th2image(image):
     return Image.fromarray(image)
 
 
+def get_timesteps(scheduler, num_inference_steps, strength, device):
+    # get the original timestep using init_timestep
+    init_timestep = min(int(num_inference_steps * strength), num_inference_steps)
+
+    t_start = max(num_inference_steps - init_timestep, 0)
+    timesteps = scheduler.timesteps[t_start * scheduler.order :]
+
+    return timesteps, num_inference_steps - t_start
+
 @torch.no_grad()
-def validation(example, tokenizer, image_encoder, text_encoder, unet, mapper, vae, device, guidance_scale, token_index='full', seed=None):
+def validation(example, tokenizer, image_encoder, text_encoder, unet, mapper, vae, device, guidance_scale, token_index='full', seed=None, strength=1.0):
     scheduler = LMSDiscreteScheduler(
         beta_start=0.00085,
         beta_end=0.012,
@@ -393,19 +402,29 @@ def validation(example, tokenizer, image_encoder, text_encoder, unet, mapper, va
     )
     uncond_embeddings = text_encoder({'input_ids':uncond_input.input_ids.to(device)})[0]
 
-    if seed is None:
-        latents = torch.randn(
-            (example["pixel_values"].shape[0], unet.in_channels, 64, 64)
-        )
-    else:
-        generator = torch.Generator().manual_seed(seed)
-        latents = torch.randn(
-            (example["pixel_values"].shape[0], unet.in_channels, 64, 64), generator=generator,
-        )
 
-    latents = latents.to(example["pixel_values_clip"])
-    scheduler.set_timesteps(100)
-    latents = latents * scheduler.init_noise_sigma
+    if seed is not None:
+        generator = torch.Generator(device).manual_seed(seed)
+    else:
+        generator = None
+    
+    latent_noise = torch.randn(
+        (example["pixel_values"].shape[0], unet.in_channels, 64, 64), generator=generator, device=device, dtype=example["pixel_values"].dtype
+    )
+    # latent_noise = latent_noise * scheduler.init_noise_sigma # TODO : make sure this is correct        
+    # latent_noise = latent_noise.to(example["pixel_values_clip"])
+    
+    num_inference_steps = 100
+    scheduler.set_timesteps(num_inference_steps)
+    timesteps, num_inference_steps = get_timesteps(scheduler, 100, strength, device)
+    latent_timestep = timesteps[:1].repeat(example["pixel_values"].shape[0])
+    
+    
+    init_latents = vae.encode(example["pixel_values"]).latent_dist.sample(generator)
+    init_latents = vae.config.scaling_factor * init_latents
+    
+    latents = scheduler.add_noise(init_latents, latent_noise, latent_timestep)
+    # latents = latents * scheduler.init_noise_sigma
 
     placeholder_idx = example["index"]
     image = F.interpolate(example["pixel_values_clip"], (224, 224), mode='bilinear')
@@ -424,7 +443,7 @@ def validation(example, tokenizer, image_encoder, text_encoder, unet, mapper, va
                                           "inj_embedding": inj_embedding,
                                           "inj_index": placeholder_idx})[0]
 
-    for t in tqdm(scheduler.timesteps):
+    for t in tqdm(timesteps):
         latent_model_input = scheduler.scale_model_input(latents, t)
         noise_pred_text = unet(
             latent_model_input,

@@ -91,18 +91,19 @@ image_np = np.array(image)
 
 # ref_object_tensor = Image.fromarray(object_tensor.astype('uint8')).resize((224, 224), resample=self.interpolation)
 ref_image_tenser = Image.fromarray(image_np.astype('uint8')).resize((224, 224), resample=PIL.Image.Resampling.BICUBIC)
+image_tensor_vae = Image.fromarray(image_np.astype('uint8')).resize((512, 512), resample=PIL.Image.Resampling.BICUBIC)
 # example["pixel_values_obj"] = self.get_tensor_clip()(ref_object_tensor)
 example["pixel_values_clip"] = get_tensor_clip()(ref_image_tenser).unsqueeze(0)
-example["pixel_values"] = copy.deepcopy(example["pixel_values_clip"])
+example["pixel_values"] = 2. * get_tensor_clip(normalize=False, toTensor=True)(image_tensor_vae).unsqueeze(0) - 1. # this normalization is apparently needed
 
 
-example["pixel_values"] = example["pixel_values"].to("cuda:0")
+example["pixel_values"] = example["pixel_values"].to("cuda:0").half()
 example["pixel_values_clip"] = example["pixel_values_clip"].to("cuda:0").half()
 example["input_ids"] = example["input_ids"].to("cuda:0")
 example["index"] = example["index"].to("cuda:0").long()
 
 ret_imgs = validation(example, tokenizer, image_encoder, text_encoder, unet, mapper, vae, example["pixel_values_clip"].device, 5,
-                    token_index=token_index, seed=seed)
+                    token_index=token_index, seed=seed, strength=0.5)
 
 ret_imgs[0].save(f'domainnet_examples/edited_cat.jpg')
 
