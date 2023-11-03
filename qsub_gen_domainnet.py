@@ -44,4 +44,3 @@ for src, tgt in itertools.permutations(domains, 2):
         print('Command :', ' '.join(proc_arr))
         os.system(' '.join(proc_arr))
         
-        sys.exit(0)
