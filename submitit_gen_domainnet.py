@@ -40,11 +40,16 @@ if __name__ == '__main__':
     ]
 
     for src, tgt in itertools.permutations(domains, 2):
+        if src!='sketch':
+            continue
         for job_idx in range(NUM_JOBS):
             scenario = f'{src[0]}2{tgt[0]}'
             root_dir = '/gpfs/u/home/LMTM/LMTMsmms/scratch/data/synthetic-cdm/synthetic_data/elite_global'
             filelist_root = '/gpfs/u/home/LMTM/LMTMsmms/scratch/projects/synthetic-cdm/CDS_pretraining/data'
             expt_name = f'elite_global_{scenario}_job_{job_idx}'
+            
+            if expt_name in running_jobs:
+                continue
             
             args = gen_data.parse_args([])
             args.dataset = dataset
