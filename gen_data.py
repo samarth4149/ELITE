@@ -16,6 +16,7 @@ import cv2
 import copy
 import PIL
 from torchvision.datasets import ImageFolder
+from torchvision import transforms
 
 from data_list import Imagelist
 from subset_w_idx import SubsetWIdx
@@ -45,6 +46,7 @@ def parse_args(args=None):
     parser.add_argument('--seed', type=int, default=42, help='random seed')
     parser.add_argument('--dataset', type=str, default='cub', help='dataset to generate data for')
     parser.add_argument('--root_dir', type=str, default='/projectnb/ivc-ml/samarth/projects/synthetic/data/synthetic-cdm/synthetic_data/hparams/elite_global')
+    parser.add_argument('--strength', type=float, default=0.5, help='strength of noise addn')
     
     parser.add_argument('--filelist_root', type=str, default='/usr4/cs591/samarthm/projects/synthetic/synthetic-cdm/CDS_pretraining/data')
     return parser.parse_args(args)
@@ -104,7 +106,12 @@ def main(args):
     ).input_ids.repeat(args.batch_size, 1)
 
     # Image
-    dset = Imagelist(Path(args.filelist_root) / f'{args.dataset}/{args.source}_train.txt', transform=get_tensor_clip())
+    dset = Imagelist(Path(args.filelist_root) / f'{args.dataset}/{args.source}_train.txt', transform=None)
+    clip_inp_transform = get_tensor_clip()
+    vae_inp_transform = transforms.Compose([
+        transforms.Resize((512, 512), interpolation=PIL.Image.BICUBIC),
+        transforms.ToTensor(),
+    ])
     # dset = Imagelist(f'/gpfs/u/home/LMTM/LMTMsmms/scratch/projects/synthetic-cdm/CDS_pretraining/data/{args.dataset}/{args.source}_train.txt', transform=get_tensor_clip())
     args.root_dir = Path(args.root_dir) / args.dataset / scenario
 
@@ -119,18 +126,18 @@ def main(args):
         dset, batch_size=args.batch_size, shuffle=False, pin_memory=True, drop_last=False)
 
     for i, batch in enumerate(loader):
-        example["pixel_values_clip"] = batch[0]
-        example["pixel_values"] = copy.deepcopy(example["pixel_values_clip"])
+        example["pixel_values_clip"] = clip_inp_transform(batch[0])
+        example["pixel_values"] = 2. * vae_inp_transform(batch[0]) - 1.
         
         example["index"] = orig_index[:len(batch[0])]
         example["input_ids"] = orig_input_ids[:len(batch[0])]
         
-        example["pixel_values"] = example["pixel_values"].to("cuda:0")
+        example["pixel_values"] = example["pixel_values"].to("cuda:0").half()
         example["pixel_values_clip"] = example["pixel_values_clip"].to("cuda:0").half()
         example["input_ids"] = example["input_ids"].to("cuda:0")
         example["index"] = example["index"].to("cuda:0").long()
         
-        ret_imgs = validation(example, tokenizer, image_encoder, text_encoder, unet, mapper, vae, example["pixel_values_clip"].device, 5, token_index=token_index, seed=args.seed)
+        ret_imgs = validation(example, tokenizer, image_encoder, text_encoder, unet, mapper, vae, example["pixel_values_clip"].device, 5, token_index=token_index, seed=args.seed, strength=args.strength)
         
         src_paths = [loader.dataset.imgs[idx] for idx in batch[2]]
         src_paths = [str(Path(p).relative_to(Path(p).parents[1])) for p in src_paths]
