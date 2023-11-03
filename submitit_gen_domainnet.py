@@ -43,8 +43,8 @@ if __name__ == '__main__':
         'elite_global_s2p_job_6',
         'elite_global_s2c_job_1',
         'elite_global_s2c_job_2',
-        'elite_global_s2c_job_7',
-        'elite_global_s2c_job_0',
+        # 'elite_global_s2c_job_7',
+        # 'elite_global_s2c_job_0',
         'elite_global_s2p_job_2',
         'elite_global_s2p_job_5',
     ]
