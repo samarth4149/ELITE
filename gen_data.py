@@ -113,18 +113,20 @@ def main(args):
         transforms.ToTensor(),
     ])
     dset1 = Imagelist(Path(args.filelist_root) / f'{args.dataset}/{args.source}_train.txt', transform=clip_inp_transform)
-    dset2 = Imagelist(Path(args.filelist_root) / f'{args.dataset}/{args.source}_train.txt', transform=vae_inp_transform)
     
     # dset = Imagelist(f'/gpfs/u/home/LMTM/LMTMsmms/scratch/projects/synthetic-cdm/CDS_pretraining/data/{args.dataset}/{args.source}_train.txt', transform=get_tensor_clip())
     args.root_dir = Path(args.root_dir) / args.dataset / scenario
 
     if args.num_jobs > 1:
-        dset.mode_self = False
-        curr_idxs = np.array_split(np.arange(len(dset)), args.num_jobs)[args.job_idx]
-        dset = SubsetWIdx(dset, curr_idxs)
-        dset.imgs = [dset.dataset.imgs[i] for i in curr_idxs]
-        dset.labels = dset.dataset.labels[curr_idxs]
+        dset1.mode_self = False
+        curr_idxs = np.array_split(np.arange(len(dset1)), args.num_jobs)[args.job_idx]
+        dset1 = SubsetWIdx(dset1, curr_idxs)
+        dset1.imgs = [dset1.dataset.imgs[i] for i in curr_idxs]
+        dset1.labels = dset1.dataset.labels[curr_idxs]
         
+    dset2 = copy.deepcopy(dset1)
+    dset2.transform = vae_inp_transform
+    
     loader1 = torch.utils.data.DataLoader(
         dset1, batch_size=args.batch_size, shuffle=False, pin_memory=True, drop_last=False, num_workers=args.num_workers // 2)
     loader2 = torch.utils.data.DataLoader(
