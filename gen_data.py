@@ -107,12 +107,14 @@ def main(args):
     ).input_ids.repeat(args.batch_size, 1)
 
     # Image
-    dset = Imagelist(Path(args.filelist_root) / f'{args.dataset}/{args.source}_train.txt', transform=transforms.ToTensor())
-    clip_inp_transform = get_tensor_clip(toTensor=False)
+    clip_inp_transform = get_tensor_clip()
     vae_inp_transform = transforms.Compose([
         transforms.Resize((512, 512), interpolation=PIL.Image.BICUBIC),
-        # transforms.ToTensor(),
+        transforms.ToTensor(),
     ])
+    dset1 = Imagelist(Path(args.filelist_root) / f'{args.dataset}/{args.source}_train.txt', transform=clip_inp_transform)
+    dset2 = Imagelist(Path(args.filelist_root) / f'{args.dataset}/{args.source}_train.txt', transform=vae_inp_transform)
+    
     # dset = Imagelist(f'/gpfs/u/home/LMTM/LMTMsmms/scratch/projects/synthetic-cdm/CDS_pretraining/data/{args.dataset}/{args.source}_train.txt', transform=get_tensor_clip())
     args.root_dir = Path(args.root_dir) / args.dataset / scenario
 
@@ -123,15 +125,17 @@ def main(args):
         dset.imgs = [dset.dataset.imgs[i] for i in curr_idxs]
         dset.labels = dset.dataset.labels[curr_idxs]
         
-    loader = torch.utils.data.DataLoader(
-        dset, batch_size=args.batch_size, shuffle=False, pin_memory=True, drop_last=False, num_workers=args.num_workers)
+    loader1 = torch.utils.data.DataLoader(
+        dset1, batch_size=args.batch_size, shuffle=False, pin_memory=True, drop_last=False, num_workers=args.num_workers // 2)
+    loader2 = torch.utils.data.DataLoader(
+        dset2, batch_size=args.batch_size, shuffle=False, pin_memory=True, drop_last=False, num_workers=args.num_workers // 2)
 
-    for i, batch in enumerate(loader):
-        example["pixel_values_clip"] = clip_inp_transform(batch[0])
-        example["pixel_values"] = 2. * vae_inp_transform(batch[0]) - 1.
+    for i, (batch1, batch2) in enumerate(zip(loader1, loader2)):
+        example["pixel_values_clip"] = clip_inp_transform(batch1[0])
+        example["pixel_values"] = 2. * vae_inp_transform(batch2[0]) - 1.
         
-        example["index"] = orig_index[:len(batch[0])]
-        example["input_ids"] = orig_input_ids[:len(batch[0])]
+        example["index"] = orig_index[:len(batch1[0])]
+        example["input_ids"] = orig_input_ids[:len(batch1[0])]
         
         example["pixel_values"] = example["pixel_values"].to("cuda:0").half()
         example["pixel_values_clip"] = example["pixel_values_clip"].to("cuda:0").half()
@@ -140,7 +144,7 @@ def main(args):
         
         ret_imgs = validation(example, tokenizer, image_encoder, text_encoder, unet, mapper, vae, example["pixel_values_clip"].device, 5, token_index=token_index, seed=args.seed, strength=args.strength)
         
-        src_paths = [loader.dataset.imgs[idx] for idx in batch[2]]
+        src_paths = [loader1.dataset.imgs[idx] for idx in batch1[2]]
         src_paths = [str(Path(p).relative_to(Path(p).parents[1])) for p in src_paths]
         
         for path, img in zip(src_paths, ret_imgs):
