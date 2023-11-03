@@ -113,10 +113,10 @@ def main(args):
         transforms.ToTensor(),
     ])
     dset1 = Imagelist(Path(args.filelist_root) / f'{args.dataset}/{args.source}_train.txt', transform=clip_inp_transform)
+    dset2 = Imagelist(Path(args.filelist_root) / f'{args.dataset}/{args.source}_train.txt', transform=vae_inp_transform)
     
     # dset = Imagelist(f'/gpfs/u/home/LMTM/LMTMsmms/scratch/projects/synthetic-cdm/CDS_pretraining/data/{args.dataset}/{args.source}_train.txt', transform=get_tensor_clip())
     args.root_dir = Path(args.root_dir) / args.dataset / scenario
-
     if args.num_jobs > 1:
         dset1.mode_self = False
         curr_idxs = np.array_split(np.arange(len(dset1)), args.num_jobs)[args.job_idx]
@@ -124,8 +124,11 @@ def main(args):
         dset1.imgs = [dset1.dataset.imgs[i] for i in curr_idxs]
         dset1.labels = dset1.dataset.labels[curr_idxs]
         
-    dset2 = copy.deepcopy(dset1)
-    dset2.transform = vae_inp_transform
+        dset2.mode_self = False
+        curr_idxs = np.array_split(np.arange(len(dset2)), args.num_jobs)[args.job_idx]
+        dset2 = SubsetWIdx(dset2, curr_idxs)
+        dset2.imgs = [dset2.dataset.imgs[i] for i in curr_idxs]
+        dset2.labels = dset2.dataset.labels[curr_idxs]
     
     loader1 = torch.utils.data.DataLoader(
         dset1, batch_size=args.batch_size, shuffle=False, pin_memory=True, drop_last=False, num_workers=args.num_workers // 2)
@@ -133,8 +136,8 @@ def main(args):
         dset2, batch_size=args.batch_size, shuffle=False, pin_memory=True, drop_last=False, num_workers=args.num_workers // 2)
 
     for i, (batch1, batch2) in enumerate(zip(loader1, loader2)):
-        example["pixel_values_clip"] = clip_inp_transform(batch1[0])
-        example["pixel_values"] = 2. * vae_inp_transform(batch2[0]) - 1.
+        example["pixel_values_clip"] = batch1[0]
+        example["pixel_values"] = 2. * batch2[0] - 1. # fed to vae
         
         example["index"] = orig_index[:len(batch1[0])]
         example["input_ids"] = orig_input_ids[:len(batch1[0])]
