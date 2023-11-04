@@ -16,7 +16,7 @@ domains = ['Real', 'Painting']
 for src, tgt in itertools.permutations(domains, 2):
     for strength in [0.3, 0.7]:
         for job_idx in range(NUM_JOBS):
-            root_dir = '/projectnb/ivc-ml/samarth/projects/synthetic/data/synthetic-cdm/synthetic_data/elite_global_img2img/strength_{strength}'
+            root_dir = f'/projectnb/ivc-ml/samarth/projects/synthetic/data/synthetic-cdm/synthetic_data/elite_global_img2img/strength_{strength}'
             scenario = f'{src[0]}2{tgt[0]}'
             expt_name = f'elite_global_img2img_strength_{strength}_{dataset}_{scenario}_job_{job_idx}'
             proc_arr = ['qsub']
