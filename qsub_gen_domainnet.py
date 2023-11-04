@@ -15,6 +15,9 @@ domains = ['sketch', 'clipart', 'painting']
 
 for src, tgt in itertools.permutations(domains, 2):
     for job_idx in range(NUM_JOBS):
+        if not (src == 'painting' and tgt == 'clipart' and job_idx > 0):
+            continue
+            
         strength = 0.5
         root_dir = f'/projectnb/ivc-ml/samarth/projects/synthetic/data/synthetic-cdm/synthetic_data/elite_global_img2img/strength_{strength}'
         scenario = f'{src[0]}2{tgt[0]}'
