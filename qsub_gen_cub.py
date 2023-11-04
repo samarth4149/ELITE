@@ -15,15 +15,16 @@ domains = ['Real', 'Painting']
 
 for src, tgt in itertools.permutations(domains, 2):
     for job_idx in range(NUM_JOBS):
-        root_dir = '/projectnb/ivc-ml/samarth/projects/synthetic/data/synthetic-cdm/synthetic_data/elite_global'
+        strength = 0.5
+        root_dir = '/projectnb/ivc-ml/samarth/projects/synthetic/data/synthetic-cdm/synthetic_data/elite_global_img2img/strength_{strength}'
         scenario = f'{src[0]}2{tgt[0]}'
-        expt_name = f'elite_global_{scenario}_job_{job_idx}'
+        expt_name = f'elite_global_img2img_strength_{strength}_{dataset}_{scenario}_job_{job_idx}'
         proc_arr = ['qsub']
         proc_arr.extend(get_qsub_options(
             qsub_name=expt_name,
             outfile=Path(root_dir) / dataset / scenario / f'qsub_log_{job_idx}.txt',
             project=PROJECT,
-            duration='6:00:00',
+            duration='11:50:00',
             # gpu_c='4.5',
             gpu_memory='20G',
         ))
@@ -36,6 +37,9 @@ for src, tgt in itertools.permutations(domains, 2):
         proc_arr += ['--batch_size', '12']
         proc_arr += ['--num_jobs', str(NUM_JOBS)]
         proc_arr += ['--job_idx', str(job_idx)]
+        
+        proc_arr += ['--strength', str(strength)]
+        
         
         print('Job name : ', expt_name)
         print('Command :', ' '.join(proc_arr))
