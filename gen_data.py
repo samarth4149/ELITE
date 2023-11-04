@@ -25,13 +25,13 @@ from pathlib import Path
 
 TEMPLATES = {
     'cub' : {
-        'Real' : 'A colorful realistic photo of a S bird.',
-        'Painting' : 'A painting of a S bird.',
+        'Real' : 'A colored realistic photo of a S bird',
+        'Painting' : 'A painting of a S bird',
     },
     'domainnet': {
-        'clipart' : 'A clipart image of S.',
-        'painting': 'A painting of S.',
-        'sketch': 'A pencil/charcoal sketch of S.',
+        'clipart' : 'A clipart image of S',
+        'painting': 'A painting of a S',
+        'sketch': 'A pencil/charcoal sketch of S',
     },
 }
 
@@ -126,6 +126,15 @@ def main(args):
         example["pixel_values_clip"] = batch[0]
         example["pixel_values"] = copy.deepcopy(example["pixel_values_clip"])
         
+        # img_path = Path('/usr4/cs591/samarthm/projects/synthetic/data/synthetic-cdm/domainnet/sketch/aircraft_carrier/sketch_001_000035.jpg')
+        # img_path2 = Path('/usr4/cs591/samarthm/projects/synthetic/data/synthetic-cdm/domainnet/sketch/aircraft_carrier/sketch_001_000041.jpg')
+
+        # # for i, idx in enumerate(rand_idxs):
+        # image = Image.open(img_path).convert('RGB')
+        # image2 = Image.open(img_path2).convert('RGB')
+        # tmp = torch.stack([get_tensor_clip()(image), get_tensor_clip()(image2)], dim=0) # should be equal to batch[0]
+
+        
         example["index"] = orig_index[:len(batch[0])]
         example["input_ids"] = orig_input_ids[:len(batch[0])]
         
@@ -145,7 +154,6 @@ def main(args):
             out_path = Path(args.root_dir) / path
             os.makedirs(out_path.parent, exist_ok=True)
             img.save(out_path)
-    
     
 if __name__ == '__main__':
     args = parse_args()

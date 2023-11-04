@@ -9,7 +9,7 @@ import submitit
 import copy
 import gen_data
 
-NUM_JOBS = 5
+NUM_JOBS = 4
 
 class Trainer:
     def __init__(self, args) -> None:

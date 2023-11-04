@@ -24,7 +24,7 @@ def process(image):
     return torch.from_numpy(img).permute(2, 0, 1)
 
 def get_tensor_clip(normalize=True, toTensor=True):
-    transform_list = []
+    transform_list = [torchvision.transforms.Resize((224, 224), interpolation=PIL.Image.BICUBIC)]
     if toTensor:
         transform_list += [torchvision.transforms.ToTensor()]
     if normalize:
@@ -60,7 +60,7 @@ for idx, word in enumerate(words):
     if word == placeholder_string:
         placeholder_index = idx + 1
 
-example["index"] = torch.tensor(placeholder_index).unsqueeze(0)
+example["index"] = torch.tensor(placeholder_index).unsqueeze(0).repeat(2)
 
 example["input_ids"] = tokenizer(
     text,
@@ -68,31 +68,34 @@ example["input_ids"] = tokenizer(
     truncation=True,
     max_length=tokenizer.model_max_length,
     return_tensors="pt",
-).input_ids
+).input_ids.repeat(2, 1)
 
 # Image
 # cub_dset = ImageFolder('/gpfs/u/home/LMTM/LMTMsmms/scratch/data/synthetic-cdm/cub/Real')
 
 RNG = np.random.RandomState(44)
 # rand_idxs = RNG.choice(len(cub_dset), 2, replace=False)
-img_path = Path('/usr4/cs591/samarthm/projects/synthetic/data/synthetic-cdm/domainnet/sketch/cat/sketch_065_000060.jpg')
+img_path = Path('/usr4/cs591/samarthm/projects/synthetic/data/synthetic-cdm/domainnet/sketch/aircraft_carrier/sketch_001_000035.jpg')
+img_path2 = Path('/usr4/cs591/samarthm/projects/synthetic/data/synthetic-cdm/domainnet/sketch/aircraft_carrier/sketch_001_000041.jpg')
 
 # for i, idx in enumerate(rand_idxs):
-image = Image.open(img_path).convert('RGB').resize((512, 512))
-image.save(f'domainnet_examples/orig_cat.jpg')
+image = Image.open(img_path).convert('RGB')
+image2 = Image.open(img_path2).convert('RGB')
+image.save(f'domainnet_examples/orig_aircraft_carrier.jpg')
+image2.save(f'domainnet_examples/orig_aircraft_carrier2.jpg')
 # mask_path = self.image_paths[i % self.num_images].replace('.jpeg', '.png').replace('.jpg', '.png').replace('.JPEG', '.png')[:-4] + '_bg.png'
 # mask = np.array(Image.open(mask_path))
 
 # mask = np.where(mask > 0, 1, 0)
 
-image_np = np.array(image)
+# image_np = np.array(image)
 # object_tensor = image_np * mask
 # example["pixel_values"] = process(image_np)
 
 # ref_object_tensor = Image.fromarray(object_tensor.astype('uint8')).resize((224, 224), resample=self.interpolation)
-ref_image_tenser = Image.fromarray(image_np.astype('uint8')).resize((224, 224), resample=PIL.Image.Resampling.BICUBIC)
+# ref_image_tenser = Image.fromarray(image_np.astype('uint8')).resize((224, 224), resample=PIL.Image.Resampling.BICUBIC)
 # example["pixel_values_obj"] = self.get_tensor_clip()(ref_object_tensor)
-example["pixel_values_clip"] = get_tensor_clip()(ref_image_tenser).unsqueeze(0)
+example["pixel_values_clip"] = torch.stack([get_tensor_clip()(image), get_tensor_clip()(image2)], dim=0)
 example["pixel_values"] = copy.deepcopy(example["pixel_values_clip"])
 
 
@@ -104,7 +107,8 @@ example["index"] = example["index"].to("cuda:0").long()
 ret_imgs = validation(example, tokenizer, image_encoder, text_encoder, unet, mapper, vae, example["pixel_values_clip"].device, 5,
                     token_index=token_index, seed=seed)
 
-ret_imgs[0].save(f'domainnet_examples/edited_cat.jpg')
+ret_imgs[0].save(f'domainnet_examples/edited_aircraft_carrier.jpg')
+ret_imgs[1].save(f'domainnet_examples/edited_aircraft_carrier2.jpg')
 
     # ref_seg_tensor = Image.fromarray(mask.astype('uint8') * 255)
     # ref_seg_tensor = self.get_tensor_clip(normalize=False)(ref_seg_tensor)
