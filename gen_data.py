@@ -24,6 +24,12 @@ import argparse
 from pathlib import Path
 
 TEMPLATES = {
+    'office_home' : {
+        'Art' : 'A painting/artistic photo of a S',
+        'Clipart' : 'A clipart image of S',
+        'Product' : 'A product image of S on a white background',
+        'Real' : 'A colored realistic photo of a S',
+    },
     'cub' : {
         'Real' : 'A colored realistic photo of a S bird',
         'Painting' : 'A painting of a S bird',
