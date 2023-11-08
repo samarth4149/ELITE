@@ -14,9 +14,14 @@ dataset = 'cub'
 domains = ['Real', 'Painting']
 
 for src, tgt in itertools.permutations(domains, 2):
-    for job_idx in range(NUM_JOBS):
+    if src == 'Real':
+        num_jobs = 4
+    else:
+        num_jobs = 2
+    for job_idx in range(num_jobs):
         root_dir = '/projectnb/ivc-ml/samarth/projects/synthetic/data/synthetic-cdm/synthetic_data/elite_global_no_bird'
         scenario = f'{src[0]}2{tgt[0]}'
+        
         expt_name = f'elite_global_no_bird_{scenario}_job_{job_idx}'
         proc_arr = ['qsub']
         proc_arr.extend(get_qsub_options(
@@ -34,7 +39,7 @@ for src, tgt in itertools.permutations(domains, 2):
         proc_arr += ['--target', tgt]
         proc_arr += ['--root_dir', root_dir]
         proc_arr += ['--batch_size', '12']
-        proc_arr += ['--num_jobs', str(NUM_JOBS)]
+        proc_arr += ['--num_jobs', str(num_jobs)]
         proc_arr += ['--job_idx', str(job_idx)]
         
         print('Job name : ', expt_name)
