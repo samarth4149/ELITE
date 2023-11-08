@@ -31,8 +31,8 @@ TEMPLATES = {
         'Real' : 'A colored realistic photo of a S',
     },
     'cub' : {
-        'Real' : 'A colored realistic photo of a S bird',
-        'Painting' : 'A painting of a S bird',
+        'Real' : 'A colored realistic photo of S',
+        'Painting' : 'A painting of S',
     },
     'domainnet': {
         'clipart' : 'A clipart image of S',

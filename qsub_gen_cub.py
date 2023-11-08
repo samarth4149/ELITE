@@ -15,9 +15,9 @@ domains = ['Real', 'Painting']
 
 for src, tgt in itertools.permutations(domains, 2):
     for job_idx in range(NUM_JOBS):
-        root_dir = '/projectnb/ivc-ml/samarth/projects/synthetic/data/synthetic-cdm/synthetic_data/elite_global'
+        root_dir = '/projectnb/ivc-ml/samarth/projects/synthetic/data/synthetic-cdm/synthetic_data/elite_global_no_bird'
         scenario = f'{src[0]}2{tgt[0]}'
-        expt_name = f'elite_global_{scenario}_job_{job_idx}'
+        expt_name = f'elite_global_no_bird_{scenario}_job_{job_idx}'
         proc_arr = ['qsub']
         proc_arr.extend(get_qsub_options(
             qsub_name=expt_name,
