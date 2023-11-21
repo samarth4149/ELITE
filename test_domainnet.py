@@ -37,7 +37,7 @@ seed = 42
 global_mapper_path = 'checkpoints/global_mapper.pt'
 placeholder_token = 'S'
 pt_model_name = 'CompVis/stable-diffusion-v1-4'
-template = 'A painting of a S'
+template = 'An image of a S in the style of domain_clipart'
 
 # load components
 vae, unet, text_encoder, tokenizer, image_encoder, mapper, scheduler = inference_global.pww_load_tools(
@@ -60,7 +60,28 @@ for idx, word in enumerate(words):
     if word == placeholder_string:
         placeholder_index = idx + 1
 
-example["index"] = torch.tensor(placeholder_index).unsqueeze(0).repeat(2)
+# Loading textual inversion token
+textinv_path = '/usr4/cs591/samarthm/projects/synthetic/synthetic-cdm/expts/textual_inversion_sd_v1-4/train/domainnet/clipart/learned_embeds-steps-5000.bin'
+learned_embeds = torch.load(textinv_path)
+new_token, new_token_embed = next(iter(learned_embeds.items()))
+assert new_token == f'domain_clipart'
+num_added_tokens = tokenizer.add_tokens(new_token)
+assert num_added_tokens > 0, f'Token {new_token} already exists in tokenizer'
+
+text_encoder.resize_token_embeddings(len(tokenizer))
+added_token_id = tokenizer.convert_tokens_to_ids(new_token)
+
+# get the old word embeddings
+embeddings = text_encoder.get_input_embeddings()
+
+# get the id for the token and assign new embeds
+embeddings.weight.data[added_token_id] = \
+    new_token_embed.to(embeddings.weight.dtype)
+####################################
+
+
+
+example["index"] = torch.tensor(placeholder_index).unsqueeze(0)
 
 example["input_ids"] = tokenizer(
     text,
@@ -68,21 +89,22 @@ example["input_ids"] = tokenizer(
     truncation=True,
     max_length=tokenizer.model_max_length,
     return_tensors="pt",
-).input_ids.repeat(2, 1)
+).input_ids
 
 # Image
 # cub_dset = ImageFolder('/gpfs/u/home/LMTM/LMTMsmms/scratch/data/synthetic-cdm/cub/Real')
 
 RNG = np.random.RandomState(44)
 # rand_idxs = RNG.choice(len(cub_dset), 2, replace=False)
-img_path = Path('/usr4/cs591/samarthm/projects/synthetic/data/synthetic-cdm/domainnet/sketch/aircraft_carrier/sketch_001_000035.jpg')
-img_path2 = Path('/usr4/cs591/samarthm/projects/synthetic/data/synthetic-cdm/domainnet/sketch/aircraft_carrier/sketch_001_000041.jpg')
+# img_path = Path('/usr4/cs591/samarthm/projects/synthetic/data/synthetic-cdm/cub/Real/110.Geococcyx/Geococcyx_0038_104266.jpg')
+img_path = Path('/usr4/cs591/samarthm/projects/synthetic/data/synthetic-cdm/domainnet/sketch/aircraft_carrier/sketch_001_000041.jpg')
 
 # for i, idx in enumerate(rand_idxs):
 image = Image.open(img_path).convert('RGB')
-image2 = Image.open(img_path2).convert('RGB')
-image.save(f'domainnet_examples/orig_aircraft_carrier.jpg')
-image2.save(f'domainnet_examples/orig_aircraft_carrier2.jpg')
+# image2 = Image.open(img_path2).convert('RGB')
+# image.save(f'cub_examples/orig_geococcyx.jpg')
+image.save(f'domainnet_examples_textinv/orig_aircraft_carrier.jpg')
+# image2.save(f'domainnet_examples/orig_aircraft_carrier2.jpg')
 # mask_path = self.image_paths[i % self.num_images].replace('.jpeg', '.png').replace('.jpg', '.png').replace('.JPEG', '.png')[:-4] + '_bg.png'
 # mask = np.array(Image.open(mask_path))
 
@@ -94,8 +116,8 @@ image2.save(f'domainnet_examples/orig_aircraft_carrier2.jpg')
 
 # ref_object_tensor = Image.fromarray(object_tensor.astype('uint8')).resize((224, 224), resample=self.interpolation)
 # ref_image_tenser = Image.fromarray(image_np.astype('uint8')).resize((224, 224), resample=PIL.Image.Resampling.BICUBIC)
-# example["pixel_values_obj"] = self.get_tensor_clip()(ref_object_tensor)
-example["pixel_values_clip"] = torch.stack([get_tensor_clip()(image), get_tensor_clip()(image2)], dim=0)
+example["pixel_values_clip"] = get_tensor_clip()(image).unsqueeze(0)
+# example["pixel_values_clip"] = torch.stack([get_tensor_clip()(image), get_tensor_clip()(image2)], dim=0)
 example["pixel_values"] = copy.deepcopy(example["pixel_values_clip"])
 
 
@@ -107,8 +129,8 @@ example["index"] = example["index"].to("cuda:0").long()
 ret_imgs = validation(example, tokenizer, image_encoder, text_encoder, unet, mapper, vae, example["pixel_values_clip"].device, 5,
                     token_index=token_index, seed=seed)
 
-ret_imgs[0].save(f'domainnet_examples/edited_aircraft_carrier.jpg')
-ret_imgs[1].save(f'domainnet_examples/edited_aircraft_carrier2.jpg')
+# ret_imgs[0].save(f'cub_examples/edited_geococcyx.jpg')
+ret_imgs[0].save(f'domainnet_examples_textinv/edited_aircraft_carrier_clipart.jpg')
 
     # ref_seg_tensor = Image.fromarray(mask.astype('uint8') * 255)
     # ref_seg_tensor = self.get_tensor_clip(normalize=False)(ref_seg_tensor)

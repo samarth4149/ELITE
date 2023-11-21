@@ -15,7 +15,7 @@ domains = ['sketch', 'painting', 'clipart']
 
 for src, tgt in itertools.permutations(domains, 2):
     for job_idx in range(NUM_JOBS):
-        root_dir = '/projectnb/ivc-ml/samarth/projects/synthetic/data/synthetic-cdm/synthetic_data/elite_global'
+        root_dir = '/projectnb/ivc-ml/samarth/projects/synthetic/data/synthetic-cdm/synthetic_data/elite_global_textinv'
         scenario = f'{src[0]}2{tgt[0]}'
         expt_name = f'elite_global_{dataset}_{scenario}_job_{job_idx}'
         proc_arr = ['qsub']
@@ -28,7 +28,7 @@ for src, tgt in itertools.permutations(domains, 2):
             gpu_memory='20G',
         ))
 
-        proc_arr += ['python', 'gen_data.py']
+        proc_arr += ['python', 'gen_data_textinv.py']
         proc_arr += ['--dataset', dataset]
         proc_arr += ['--source', src]
         proc_arr += ['--target', tgt]
