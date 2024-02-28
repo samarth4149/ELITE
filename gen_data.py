@@ -27,8 +27,8 @@ TEMPLATES = {
     'office_home' : {
         'Art' : 'A painting/artistic photo of a S',
         'Clipart' : 'A clipart image of S',
-        'Product' : 'A product image of S on a white background',
-        'Real' : 'A colored realistic photo of a S',
+        'Product' : 'A catalog image of S on a white background',
+        'Real' : 'A realistic photo of a S',
     },
     'cub' : {
         'Real' : 'A colored realistic photo of S',
