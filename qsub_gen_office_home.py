@@ -45,5 +45,4 @@ for src, tgt in itertools.permutations(domains, 2):
         
         print('Job name : ', expt_name)
         print('Command :', ' '.join(proc_arr))
-        sys.exit(0)
         os.system(' '.join(proc_arr))
