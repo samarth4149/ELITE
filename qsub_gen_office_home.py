@@ -11,10 +11,15 @@ import itertools
 PROJECT = 'ivc-ml'
 NUM_JOBS = 1
 dataset = 'office_home'
-# domains = ['Art', 'Clipart', 'Product', 'Real']
-domains = ['Product', 'Real']
+domains = ['Art', 'Clipart', 'Product', 'Real']
+# domains = ['Product', 'Real']
 
 for src, tgt in itertools.permutations(domains, 2):
+    if tgt == 'Clipart':
+        continue
+    if set([src, tgt]) == set(['Product', 'Real']):
+        continue
+    
     for job_idx in range(NUM_JOBS):
         root_dir = '/projectnb/ivc-ml/samarth/projects/synthetic/data/synthetic-cdm/synthetic_data/elite_global2'
         scenario = f'{src[0]}2{tgt[0]}'
@@ -40,4 +45,5 @@ for src, tgt in itertools.permutations(domains, 2):
         
         print('Job name : ', expt_name)
         print('Command :', ' '.join(proc_arr))
+        sys.exit(0)
         os.system(' '.join(proc_arr))

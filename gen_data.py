@@ -41,6 +41,8 @@ TEMPLATES = {
     },
 }
 
+RNG = np.random.RandomState(44)
+
 def parse_args(args=None):
     parser = argparse.ArgumentParser(description='Generate ELITE data for CUB.')
     parser.add_argument('--source', type=str, default='Real', help='src domain to generate data for')
@@ -91,24 +93,58 @@ def main(args):
     example = {}
 
     # Text
-    placeholder_string = placeholder_token
-    text = template.format(placeholder_string)
+    if args.dataset == 'office_home' and args.target == 'Art':
+        text1 = 'A painting of a S'
+        text2 = 'An artistic photo of a S'
+        
+        placeholder_index1 = 0
+        placeholder_index2 = 0
+        
+        words = text1.strip().split(' ')
+        for idx, word in enumerate(words):
+            if word == placeholder_token:
+                placeholder_index1 = idx + 1
+        
+        words = text2.strip().split(' ')
+        for idx, word in enumerate(words):
+            if word == placeholder_token:
+                placeholder_index2 = idx + 1
+                
+        orig_input_ids1 = tokenizer(
+            text1,
+            padding="max_length",
+            truncation=True,
+            max_length=tokenizer.model_max_length,
+            return_tensors="pt",
+        ).input_ids
+        
+        orig_input_ids2 = tokenizer(
+            text2,
+            padding="max_length",
+            truncation=True,
+            max_length=tokenizer.model_max_length,
+            return_tensors="pt",
+        ).input_ids
+      
+    else:  
+        placeholder_string = placeholder_token
+        text = template.format(placeholder_string)
 
-    placeholder_index = 0
-    words = text.strip().split(' ')
-    for idx, word in enumerate(words):
-        if word == placeholder_string:
-            placeholder_index = idx + 1
+        placeholder_index = 0
+        words = text.strip().split(' ')
+        for idx, word in enumerate(words):
+            if word == placeholder_string:
+                placeholder_index = idx + 1
 
-    orig_index = torch.tensor(placeholder_index).unsqueeze(0).repeat(args.batch_size)
+        orig_index = torch.tensor(placeholder_index).unsqueeze(0).repeat(args.batch_size)
 
-    orig_input_ids = tokenizer(
-        text,
-        padding="max_length",
-        truncation=True,
-        max_length=tokenizer.model_max_length,
-        return_tensors="pt",
-    ).input_ids.repeat(args.batch_size, 1)
+        orig_input_ids = tokenizer(
+            text,
+            padding="max_length",
+            truncation=True,
+            max_length=tokenizer.model_max_length,
+            return_tensors="pt",
+        ).input_ids.repeat(args.batch_size, 1)
 
     # Image
     if args.filelist:
@@ -140,9 +176,13 @@ def main(args):
         # image2 = Image.open(img_path2).convert('RGB')
         # tmp = torch.stack([get_tensor_clip()(image), get_tensor_clip()(image2)], dim=0) # should be equal to batch[0]
 
-        
-        example["index"] = orig_index[:len(batch[0])]
-        example["input_ids"] = orig_input_ids[:len(batch[0])]
+        if args.dataset == 'office_home' and args.target == 'Art':
+            template_choices = RNG.choice([0, 1], p=[0.3, 0.7], size=len(batch[0]))
+            example["index"] = torch.where(torch.tensor(template_choices == 0), torch.tensor(placeholder_index1), torch.tensor(placeholder_index2))
+            example["input_ids"] = torch.where(torch.tensor(template_choices == 0).unsqueeze(-1), orig_input_ids1, orig_input_ids2)
+        else:
+            example["index"] = orig_index[:len(batch[0])]
+            example["input_ids"] = orig_input_ids[:len(batch[0])]
         
         example["pixel_values"] = example["pixel_values"].to("cuda:0")
         example["pixel_values_clip"] = example["pixel_values_clip"].to("cuda:0").half()
