@@ -37,7 +37,8 @@ seed = 42
 global_mapper_path = 'checkpoints/global_mapper.pt'
 placeholder_token = 'S'
 pt_model_name = 'CompVis/stable-diffusion-v1-4'
-template = 'An image of a S in the style of domain_clipart'
+# template = 'An image of a S in the style of domain_clipart'
+template = 'A painting of a S'
 
 # load components
 vae, unet, text_encoder, tokenizer, image_encoder, mapper, scheduler = inference_global.pww_load_tools(
@@ -61,22 +62,22 @@ for idx, word in enumerate(words):
         placeholder_index = idx + 1
 
 # Loading textual inversion token
-textinv_path = '/usr4/cs591/samarthm/projects/synthetic/synthetic-cdm/expts/textual_inversion_sd_v1-4/train/domainnet/clipart/learned_embeds-steps-5000.bin'
-learned_embeds = torch.load(textinv_path)
-new_token, new_token_embed = next(iter(learned_embeds.items()))
-assert new_token == f'domain_clipart'
-num_added_tokens = tokenizer.add_tokens(new_token)
-assert num_added_tokens > 0, f'Token {new_token} already exists in tokenizer'
+# textinv_path = '/usr4/cs591/samarthm/projects/synthetic/synthetic-cdm/expts/textual_inversion_sd_v1-4/train/domainnet/clipart/learned_embeds-steps-5000.bin'
+# learned_embeds = torch.load(textinv_path)
+# new_token, new_token_embed = next(iter(learned_embeds.items()))
+# assert new_token == f'domain_clipart'
+# num_added_tokens = tokenizer.add_tokens(new_token)
+# assert num_added_tokens > 0, f'Token {new_token} already exists in tokenizer'
 
-text_encoder.resize_token_embeddings(len(tokenizer))
-added_token_id = tokenizer.convert_tokens_to_ids(new_token)
+# text_encoder.resize_token_embeddings(len(tokenizer))
+# added_token_id = tokenizer.convert_tokens_to_ids(new_token)
 
-# get the old word embeddings
-embeddings = text_encoder.get_input_embeddings()
+# # get the old word embeddings
+# embeddings = text_encoder.get_input_embeddings()
 
-# get the id for the token and assign new embeds
-embeddings.weight.data[added_token_id] = \
-    new_token_embed.to(embeddings.weight.dtype)
+# # get the id for the token and assign new embeds
+# embeddings.weight.data[added_token_id] = \
+#     new_token_embed.to(embeddings.weight.dtype)
 ####################################
 
 
@@ -103,7 +104,7 @@ img_path = Path('/usr4/cs591/samarthm/projects/synthetic/data/synthetic-cdm/doma
 image = Image.open(img_path).convert('RGB')
 # image2 = Image.open(img_path2).convert('RGB')
 # image.save(f'cub_examples/orig_geococcyx.jpg')
-image.save(f'domainnet_examples_textinv/orig_aircraft_carrier.jpg')
+image.save(f'domainnet_examples_old/orig_aircraft_carrier.jpg')
 # image2.save(f'domainnet_examples/orig_aircraft_carrier2.jpg')
 # mask_path = self.image_paths[i % self.num_images].replace('.jpeg', '.png').replace('.jpg', '.png').replace('.JPEG', '.png')[:-4] + '_bg.png'
 # mask = np.array(Image.open(mask_path))
@@ -130,7 +131,7 @@ ret_imgs = validation(example, tokenizer, image_encoder, text_encoder, unet, map
                     token_index=token_index, seed=seed)
 
 # ret_imgs[0].save(f'cub_examples/edited_geococcyx.jpg')
-ret_imgs[0].save(f'domainnet_examples_textinv/edited_aircraft_carrier_clipart.jpg')
+ret_imgs[0].save(f'domainnet_examples_old/edited_aircraft_carrier_clipart.jpg')
 
     # ref_seg_tensor = Image.fromarray(mask.astype('uint8') * 255)
     # ref_seg_tensor = self.get_tensor_clip(normalize=False)(ref_seg_tensor)

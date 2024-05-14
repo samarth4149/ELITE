@@ -9,6 +9,8 @@ from train_global import Mapper, th2image
 from train_global import inj_forward_text, inj_forward_crossattention, validation
 import torch.nn as nn
 from datasets import CustomDatasetWithBG
+from diffusers.models.attention import Attention
+    
 
 def _pil_from_latents(vae, latents):
     _latents = 1 / 0.18215 * latents.clone()
@@ -56,7 +58,7 @@ def pww_load_tools(
     # Load models and create wrapper for stable diffusion
     for _module in text_encoder.modules():
         if _module.__class__.__name__ == "CLIPTextTransformer":
-            _module.__class__.__call__ = inj_forward_text
+            _module.forward = inj_forward_text.__get__(_module, _module.__class__)
 
     unet = UNet2DConditionModel.from_pretrained(
         diffusion_model_path,
@@ -68,10 +70,17 @@ def pww_load_tools(
 
     mapper = Mapper(input_dim=1024, output_dim=768)
 
+    # import diffusers.models.unets.unet_2d_blocks
+    # from diffusers.models.attention import CrossAttention
     for _name, _module in unet.named_modules():
-        if _module.__class__.__name__ == "CrossAttention":
-            if 'attn1' in _name: continue
-            _module.__class__.__call__ = inj_forward_crossattention
+        # if (_module.__class__.__name__ == "CrossAttention"):
+        if isinstance(_module, Attention) and 'attn2' in _name:
+            # if 'attn1' in _name: continue
+            # NOTE : this needs to only be done for the current instance of the UNet and not the ControlNet unet
+            # TODO : figure out if controlnet prompt also needs this
+            # _module.forward = inj_forward_crossattention.__get__(_module, _module.__class__)
+            _module.__call__ = inj_forward_crossattention.__get__(_module, _module.__class__)
+            _module.forward = inj_forward_crossattention.__get__(_module, _module.__class__)
 
             shape = _module.to_k.weight.shape
             to_k_global = nn.Linear(shape[1], shape[0], bias=False)
@@ -85,8 +94,9 @@ def pww_load_tools(
     mapper.half()
 
     for _name, _module in unet.named_modules():
-        if 'attn1' in _name: continue
-        if _module.__class__.__name__ == "CrossAttention":
+        # if 'attn1' in _name: continue
+        # if (_module.__class__.__name__ == "CrossAttention"):
+        if isinstance(_module, Attention) and 'attn2' in _name:
             _module.add_module('to_k_global', mapper.__getattr__(f'{_name.replace(".", "_")}_to_k'))
             _module.add_module('to_v_global', mapper.__getattr__(f'{_name.replace(".", "_")}_to_v'))
 

@@ -24,7 +24,6 @@ from transformers.utils import (
     replace_return_docstrings,
 )
 from transformers.models.clip.configuration_clip import CLIPTextConfig
-from transformers.models.clip.modeling_clip import CLIP_TEXT_INPUTS_DOCSTRING, _expand_mask
 
 from PIL import Image
 from tqdm.auto import tqdm
@@ -78,7 +77,20 @@ def _build_causal_attention_mask(bsz, seq_len, dtype):
     return mask
 
 
-@add_start_docstrings_to_model_forward(CLIP_TEXT_INPUTS_DOCSTRING)
+def _expand_mask(mask: torch.Tensor, dtype: torch.dtype, tgt_len: Optional[int] = None):
+    """
+    Expands attention_mask from `[bsz, seq_len]` to `[bsz, 1, tgt_seq_len, src_seq_len]`.
+    """
+    bsz, src_len = mask.size()
+    tgt_len = tgt_len if tgt_len is not None else src_len
+
+    expanded_mask = mask[:, None, None, :].expand(bsz, 1, tgt_len, src_len).to(dtype)
+
+    inverted_mask = 1.0 - expanded_mask
+
+    return inverted_mask.masked_fill(inverted_mask.to(torch.bool), torch.finfo(dtype).min)
+
+# @add_start_docstrings_to_model_forward(CLIP_TEXT_INPUTS_DOCSTRING)
 @replace_return_docstrings(output_type=BaseModelOutputWithPooling, config_class=CLIPTextConfig)
 def inj_forward_text(
         self,
@@ -164,14 +176,43 @@ def inj_forward_text(
         attentions=encoder_outputs.attentions,
     )
 
-def inj_forward_crossattention(self, hidden_states, encoder_hidden_states=None, attention_mask=None):
+# These are old functions of the Attention class
+def reshape_heads_to_batch_dim(self, tensor):
+    batch_size, seq_len, dim = tensor.shape
+    head_size = self.heads
+    tensor = tensor.reshape(batch_size, seq_len, head_size, dim // head_size)
+    tensor = tensor.permute(0, 2, 1, 3).reshape(batch_size * head_size, seq_len, dim // head_size)
+    return tensor
+
+def reshape_batch_dim_to_heads(self, tensor):
+    batch_size, seq_len, dim = tensor.shape
+    head_size = self.heads
+    tensor = tensor.reshape(batch_size // head_size, head_size, seq_len, dim)
+    tensor = tensor.permute(0, 2, 1, 3).reshape(batch_size // head_size, seq_len, dim * head_size)
+    return tensor
+
+def inj_forward_crossattention(self, hidden_states, encoder_hidden_states=None, attention_mask=None, temb=None):
+    # NOTE : temb is used only when spatial_norm is not None
+    assert self.spatial_norm is None
+    
+    residual = hidden_states
+    
+    input_ndim = hidden_states.ndim
+
+    if input_ndim == 4:
+        batch_size, channel, height, width = hidden_states.shape
+        hidden_states = hidden_states.view(batch_size, channel, height * width).transpose(1, 2)
+    
     context = encoder_hidden_states
     if context is not None:
         context_tensor = context["CONTEXT_TENSOR"]
     else:
         context_tensor = hidden_states
 
-    batch_size, sequence_length, _ = hidden_states.shape
+    # batch_size, sequence_length, _ = hidden_states.shape
+
+    if self.group_norm is not None:
+        hidden_states = self.group_norm(hidden_states.transpose(1, 2)).transpose(1, 2)
 
     query = self.to_q(hidden_states)
     if context is not None:
@@ -181,11 +222,11 @@ def inj_forward_crossattention(self, hidden_states, encoder_hidden_states=None, 
         key = self.to_k(context_tensor)
         value = self.to_v(context_tensor)
 
-    dim = query.shape[-1]
+    # dim = query.shape[-1]
 
-    query = self.reshape_heads_to_batch_dim(query)
-    key = self.reshape_heads_to_batch_dim(key)
-    value = self.reshape_heads_to_batch_dim(value)
+    query = reshape_heads_to_batch_dim(self, query)
+    key = reshape_heads_to_batch_dim(self, key)
+    value = reshape_heads_to_batch_dim(self, value)
 
     attention_scores = torch.matmul(query, key.transpose(-1, -2))
     attention_scores = attention_scores * self.scale
@@ -193,12 +234,20 @@ def inj_forward_crossattention(self, hidden_states, encoder_hidden_states=None, 
     attention_probs = attention_scores.softmax(dim=-1)
 
     hidden_states = torch.matmul(attention_probs, value)
-    hidden_states = self.reshape_batch_dim_to_heads(hidden_states)
+    hidden_states = reshape_batch_dim_to_heads(self, hidden_states)
 
     # linear proj
     hidden_states = self.to_out[0](hidden_states)
     # dropout
     hidden_states = self.to_out[1](hidden_states)
+    
+    if input_ndim == 4:
+        hidden_states = hidden_states.transpose(-1, -2).reshape(batch_size, channel, height, width)
+
+    if self.residual_connection:
+        hidden_states = hidden_states + residual
+
+    hidden_states = hidden_states / self.rescale_output_factor
 
     return hidden_states
 
@@ -395,12 +444,12 @@ def validation(example, tokenizer, image_encoder, text_encoder, unet, mapper, va
 
     if seed is None:
         latents = torch.randn(
-            (example["pixel_values"].shape[0], unet.in_channels, 64, 64)
+            (example["pixel_values"].shape[0], unet.config.in_channels, 64, 64)
         )
     else:
         generator = torch.Generator().manual_seed(seed)
         latents = torch.randn(
-            (example["pixel_values"].shape[0], unet.in_channels, 64, 64), generator=generator,
+            (example["pixel_values"].shape[0], unet.config.in_channels, 64, 64), generator=generator,
         )
 
     latents = latents.to(example["pixel_values_clip"])
