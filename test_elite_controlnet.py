@@ -260,7 +260,8 @@ example["input_ids"] = tokenizer(
 ).input_ids
 
 
-img_path = Path('/usr4/cs591/samarthm/projects/synthetic/data/synthetic-cdm/domainnet/sketch/aircraft_carrier/sketch_001_000041.jpg')
+# img_path = Path('/usr4/cs591/samarthm/projects/synthetic/data/synthetic-cdm/domainnet/sketch/aircraft_carrier/sketch_001_000041.jpg')
+img_path = Path('/gpfs/u/home/LMTM/LMTMsmms/scratch/data/synthetic-cdm/domainnet/sketch/aircraft_carrier/sketch_001_000041.jpg')
 
 # for i, idx in enumerate(rand_idxs):
 image = Image.open(img_path).convert('RGB')
