@@ -101,7 +101,7 @@ RNG = np.random.RandomState(44)
 img_path = Path('/usr4/cs591/samarthm/projects/synthetic/data/synthetic-cdm/domainnet/sketch/aircraft_carrier/sketch_001_000041.jpg')
 
 # for i, idx in enumerate(rand_idxs):
-image = Image.open(img_path).convert('RGB')
+image = Image.open(img_path).convert('RGB').resize((512, 512))
 # image2 = Image.open(img_path2).convert('RGB')
 # image.save(f'cub_examples/orig_geococcyx.jpg')
 image.save(f'domainnet_examples_old/orig_aircraft_carrier.jpg')

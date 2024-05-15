@@ -1,5 +1,4 @@
 import os
-from typing import Optional, Tuple
 import numpy as np
 import torch
 from diffusers import LMSDiscreteScheduler
@@ -19,8 +18,6 @@ from train_global import th2image
 
 from diffusers import StableDiffusionControlNetPipeline, ControlNetModel, UniPCMultistepScheduler, StableDiffusionPipeline
 from diffusers.image_processor import VaeImageProcessor
-
-
 
 def prepare_control_image(
     control_image_processor,
@@ -156,24 +153,6 @@ def validation(example, tokenizer, image_encoder, text_encoder, unet, mapper, va
         ).sample
         
         noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
-        
-        # noise_pred_text = unet(
-        #     latent_model_input,
-        #     t,
-        #     encoder_hidden_states={
-        #         "CONTEXT_TENSOR": encoder_hidden_states,
-        #     }
-        # ).sample
-        
-        # noise_pred_uncond = unet(
-        #     latent_model_input,
-        #     t,
-        #     down_block_additional_residuals=down_block_res_samples,
-        #     mid_block_additional_residual=mid_block_res_sample,
-        #     encoder_hidden_states={
-        #         "CONTEXT_TENSOR": uncond_embeddings,
-        #     }
-        # ).sample
 
         noise_pred = noise_pred_uncond + guidance_scale * (
             noise_pred_text - noise_pred_uncond
@@ -187,108 +166,3 @@ def validation(example, tokenizer, image_encoder, text_encoder, unet, mapper, va
     ret_pil_images = [th2image(image) for image in images]
 
     return ret_pil_images
-
-def get_tensor_clip(normalize=True, toTensor=True):
-    transform_list = [torchvision.transforms.Resize((224, 224), interpolation=PIL.Image.BICUBIC)]
-    if toTensor:
-        transform_list += [torchvision.transforms.ToTensor()]
-    if normalize:
-        transform_list += [torchvision.transforms.Normalize((0.48145466, 0.4578275, 0.40821073),
-                                                            (0.26862954, 0.26130258, 0.27577711))]
-    return torchvision.transforms.Compose(transform_list)
-
-
-
-pt_model_name = 'CompVis/stable-diffusion-v1-4'
-token_index = 0
-seed = 42
-vae_scale_factor = 8
-
-
-
-# pipe = StableDiffusionControlNetPipeline.from_pretrained(
-#     pt_model_name, controlnet=controlnet, safety_checker=None, torch_dtype=torch.float16
-# )
-
-# pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
-
-
-global_mapper_path = 'checkpoints/global_mapper.pt'
-device = "cuda:0"
-
-vae, unet, text_encoder, tokenizer, image_encoder, mapper, scheduler = inference_global.pww_load_tools(
-    device,
-    UniPCMultistepScheduler,
-    diffusion_model_path=pt_model_name,
-    mapper_model_path=global_mapper_path,
-)
-
-controlnet = ControlNetModel.from_pretrained(
-    "lllyasviel/sd-controlnet-canny", torch_dtype=torch.float16
-)
-controlnet.to(device)
-control_image_processor = VaeImageProcessor(
-    vae_scale_factor=vae_scale_factor, do_convert_rgb=True, do_normalize=False
-)
-
-
-placeholder_token = 'S'
-template = 'A painting of a S'
-
-# Preparing example
-example = {}
-
-# Text
-placeholder_string = placeholder_token
-text = template.format(placeholder_string)
-
-placeholder_index = 0
-words = text.strip().split(' ')
-for idx, word in enumerate(words):
-    if word == placeholder_string:
-        placeholder_index = idx + 1
-
-
-example["index"] = torch.tensor(placeholder_index).unsqueeze(0)
-
-example["input_ids"] = tokenizer(
-    text,
-    padding="max_length",
-    truncation=True,
-    max_length=tokenizer.model_max_length,
-    return_tensors="pt",
-).input_ids
-
-img_path = Path('/usr4/cs591/samarthm/projects/synthetic/data/synthetic-cdm/domainnet/sketch/aircraft_carrier/sketch_001_000041.jpg')
-# img_path = Path('/usr4/cs591/samarthm/projects/synthetic/data/synthetic-cdm/domainnet/sketch/cake/sketch_052_000073.jpg')
-# img_path = Path('/gpfs/u/home/LMTM/LMTMsmms/scratch/data/synthetic-cdm/domainnet/sketch/aircraft_carrier/sketch_001_000041.jpg')
-
-# for i, idx in enumerate(rand_idxs):
-image = Image.open(img_path).convert('RGB').resize((512, 512))
-image.save(f'domainnet_examples_controlnet/orig_aircraft_carrier.jpg')
-
-low_threshold = 100
-high_threshold = 200
-
-npimg = np.array(image)
-
-canny_image = cv2.Canny(npimg, low_threshold, high_threshold)
-canny_image = canny_image[:, :, None]
-canny_image = np.concatenate([canny_image, canny_image, canny_image], axis=2)
-canny_image = Image.fromarray(canny_image)
-
-
-example["pixel_values_clip"] = get_tensor_clip()(image).unsqueeze(0)
-example["pixel_values"] = copy.deepcopy(example["pixel_values_clip"]) # NOTE : only used for shape information
-example["pixel_values"] = example["pixel_values"].to("cuda:0") 
-example["pixel_values_clip"] = example["pixel_values_clip"].to("cuda:0").half()
-example["input_ids"] = example["input_ids"].to("cuda:0")
-example["index"] = example["index"].to("cuda:0").long()
-example["control_image"] = canny_image
-
-ret_imgs = validation(example, tokenizer, image_encoder, text_encoder, unet, mapper, vae, controlnet, control_image_processor, example["pixel_values_clip"].device, 5,
-                      token_index=token_index, seed=seed)
-
-# ret_imgs[0].save(f'cub_examples/edited_geococcyx.jpg')
-ret_imgs[0].save(f'domainnet_examples_controlnet/edited_aircraft_carrier_painting.jpg')
-
