@@ -50,7 +50,7 @@ if __name__ == '__main__':
     # ]
 
     for src, tgt in itertools.permutations(domains, 2):
-        if src!='sketch':
+        if src=='sketch':
             continue
         for job_idx in range(NUM_JOBS):
             scenario = f'{src[0]}2{tgt[0]}'
