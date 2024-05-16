@@ -26,7 +26,7 @@ if __name__ == '__main__':
         for job_idx in range(NUM_JOBS):
             scenario = f'{src[0]}2{tgt[0]}'
             root_dir = '/gpfs/u/home/LMTM/LMTMsmms/scratch/data/synthetic-cdm/synthetic_data/elite_global_controlnet/train'
-            expt_name = f'elite_global_controlnet_{scenario}_job_{job_idx}'
+            expt_name = f'elite_global_controlnet_{dataset}_{scenario}_job_{job_idx}'
             
             args = gen_data_controlnet.parse_args([])
             args.dataset = dataset
@@ -36,6 +36,7 @@ if __name__ == '__main__':
             args.batch_size = 8
             args.num_jobs = NUM_JOBS
             args.job_idx = job_idx
+            args.filelist_root = f'/gpfs/u/home/LMTM/LMTMsmms/scratch/projects/synthetic-cdm/CDS_pretraining/data'
             args.num_workers = 8
             
             trainer = Trainer(args)

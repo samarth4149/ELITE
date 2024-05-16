@@ -50,20 +50,19 @@ if __name__ == '__main__':
     # ]
 
     for src, tgt in itertools.permutations(domains, 2):
-        if src=='sketch':
-            continue
         for job_idx in range(NUM_JOBS):
             scenario = f'{src[0]}2{tgt[0]}'
             root_dir = '/gpfs/u/home/LMTM/LMTMsmms/scratch/data/synthetic-cdm/synthetic_data/elite_global_controlnet/train'
             # filelist_root = '/gpfs/u/home/LMTM/LMTMsmms/scratch/projects/synthetic-cdm/CDS_pretraining/data'
-            expt_name = f'elite_global_controlnet_{scenario}_job_{job_idx}'
+            expt_name = f'elite_global_controlnet_{dataset}_{scenario}_job_{job_idx}'
             
             args = gen_data_controlnet.parse_args([])
             args.dataset = dataset
             args.source = src
             args.target = tgt
             args.root_dir = root_dir
-            args.filelist = f'/gpfs/u/home/LMTM/LMTMsmms/scratch/projects/synthetic-cdm/missing_gen_filelists/elite_global_controlnet_{dataset}_{scenario}.txt'
+            args.filelist_root = f'/gpfs/u/home/LMTM/LMTMsmms/scratch/projects/synthetic-cdm/CDS_pretraining/data'
+            # args.filelist = f'/gpfs/u/home/LMTM/LMTMsmms/scratch/projects/synthetic-cdm/missing_gen_filelists/elite_global_controlnet_{dataset}_{scenario}.txt'
             args.batch_size = 8
             args.num_jobs = NUM_JOBS
             args.job_idx = job_idx
