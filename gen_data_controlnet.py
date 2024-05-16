@@ -50,6 +50,7 @@ def parse_args(args=None):
     parser.add_argument('--seed', type=int, default=42, help='random seed')
     parser.add_argument('--dataset', type=str, default='cub', help='dataset to generate data for')
     parser.add_argument('--root_dir', type=str, default='/projectnb/ivc-ml/samarth/projects/synthetic/data/synthetic-cdm/synthetic_data/elite_plus_controlnet')
+    parser.add_argument('--num_workers', type=int, default=0)
     
     parser.add_argument('--filelist_root', type=str, default='/usr4/cs591/samarthm/projects/synthetic/synthetic-cdm/CDS_pretraining/data')
     parser.add_argument('--filelist', type=str, default='')
@@ -156,11 +157,15 @@ def main(args):
         dset.imgs = [dset.dataset.imgs[i] for i in curr_idxs]
         dset.labels = dset.dataset.labels[curr_idxs]
         
+        dset_control = SubsetWIdx(dset_control, curr_idxs)
+        dset_control.imgs = [dset_control.dataset.imgs[i] for i in curr_idxs]
+        dset_control.labels = dset_control.dataset.labels[curr_idxs]
+        
     loader = torch.utils.data.DataLoader(
-        dset, batch_size=args.batch_size, shuffle=False, pin_memory=True, drop_last=False)
+        dset, batch_size=args.batch_size, shuffle=False, pin_memory=True, drop_last=False, num_workers=args.num_workers)
     
     loader_control = torch.utils.data.DataLoader(
-        dset_control, batch_size=args.batch_size, shuffle=False, pin_memory=True, drop_last=False)
+        dset_control, batch_size=args.batch_size, shuffle=False, pin_memory=True, drop_last=False, num_workers=args.num_workers)
 
     for i, (batch, batch_control) in enumerate(zip(loader, loader_control)):
         example["pixel_values_clip"] = batch[0]

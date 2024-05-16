@@ -19,7 +19,7 @@ for src, tgt in itertools.permutations(domains, 2):
     else:
         num_jobs = 2
     for job_idx in range(num_jobs):
-        root_dir = '/projectnb/ivc-ml/samarth/projects/synthetic/data/synthetic-cdm/synthetic_data/elite_global_controlnet'
+        root_dir = '/projectnb/ivc-ml/samarth/projects/synthetic/data/synthetic-cdm/synthetic_data/elite_global_controlnet/train'
         scenario = f'{src[0]}2{tgt[0]}'
         
         expt_name = f'elite_global_controlnet_{scenario}_job_{job_idx}'
