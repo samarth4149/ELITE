@@ -24,33 +24,14 @@ def prepare_control_image(
     image,
     width,
     height,
-    batch_size,
-    num_images_per_prompt,
-    device,
-    dtype,
-    do_classifier_free_guidance=True,
-    guess_mode=False,
 ):
     image = control_image_processor.preprocess(image, height=height, width=width).to(dtype=torch.float32)
-    image_batch_size = image.shape[0]
-
-    if image_batch_size == 1:
-        repeat_by = batch_size
-    else:
-        # image batch size is the same as prompt batch size
-        repeat_by = num_images_per_prompt
-
-    image = image.repeat_interleave(repeat_by, dim=0)
-
-    image = image.to(device=device, dtype=dtype)
-
-    if do_classifier_free_guidance and not guess_mode:
-        image = torch.cat([image] * 2)
-
+    image = image.squeeze(0)
+    
     return image
 
 @torch.no_grad()
-def validation(example, tokenizer, image_encoder, text_encoder, unet, mapper, vae, controlnet, control_image_processor, device, guidance_scale, token_index='full', seed=None):
+def validation(example, tokenizer, image_encoder, text_encoder, unet, mapper, vae, controlnet, device, guidance_scale, token_index='full', seed=None):
     scheduler = LMSDiscreteScheduler(
         beta_start=0.00085,
         beta_end=0.012,
@@ -77,19 +58,7 @@ def validation(example, tokenizer, image_encoder, text_encoder, unet, mapper, va
         )
 
     control_image = example['control_image']
-    control_image = prepare_control_image(
-        control_image_processor=control_image_processor,
-        image=control_image,
-        width=512,
-        height=512,
-        batch_size=example["pixel_values"].shape[0],
-        num_images_per_prompt=1,
-        device=device,
-        dtype=controlnet.dtype,
-        do_classifier_free_guidance=True,
-        guess_mode=False,
-    )
-    
+    control_image = torch.cat([control_image, control_image]) # for classifier free guidance
 
     latents = latents.to(example["pixel_values_clip"])
     scheduler.set_timesteps(100)

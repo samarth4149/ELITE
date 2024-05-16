@@ -2,8 +2,6 @@ import os
 import numpy as np
 import torch
 from diffusers import LMSDiscreteScheduler
-from controlnet_fns import validation
-import inference_global # for pww_load_tools
 from pathlib import Path
 import torchvision
 import cv2
@@ -18,6 +16,9 @@ from pathlib import Path
 
 from diffusers import ControlNetModel
 from diffusers.image_processor import VaeImageProcessor
+from controlnet_fns import prepare_control_image, validation
+import inference_global # for pww_load_tools
+from functools import partial
 
 TEMPLATES = {
     'office_home' : {
@@ -54,12 +55,6 @@ def parse_args(args=None):
     parser.add_argument('--filelist', type=str, default='')
     return parser.parse_args(args)
 
-def process(image):
-    img = cv2.resize(image, (512, 512), interpolation=cv2.INTER_CUBIC)
-    img = np.array(img).astype(np.float32)
-    img = img / 127.5 - 1.0
-    return torch.from_numpy(img).permute(2, 0, 1)
-
 def get_tensor_clip(normalize=True, toTensor=True):
     transform_list = [torchvision.transforms.Resize((224, 224), interpolation=PIL.Image.BICUBIC)]
     if toTensor:
@@ -68,6 +63,25 @@ def get_tensor_clip(normalize=True, toTensor=True):
         transform_list += [torchvision.transforms.Normalize((0.48145466, 0.4578275, 0.40821073),
                                                             (0.26862954, 0.26130258, 0.27577711))]
     return torchvision.transforms.Compose(transform_list)
+
+def control_transform(image : PIL.Image.Image, 
+                      control_image_processor, 
+                      width, 
+                      height,):
+    low_threshold = 100
+    high_threshold = 200
+
+    npimg = np.array(image)
+    
+    canny_image = cv2.Canny(npimg, low_threshold, high_threshold)
+    canny_image = canny_image[:, :, None]
+    canny_image = np.concatenate([canny_image, canny_image, canny_image], axis=2)
+    canny_image = PIL.Image.fromarray(canny_image)
+    
+    control_image = prepare_control_image(
+        control_image_processor, canny_image, width, height)
+    return control_image
+    
 
 def main(args):
     scenario = f'{args.source[0]}2{args.target[0]}'
@@ -99,6 +113,10 @@ def main(args):
     # Update tokenizer with new token
     num_added_tokens = tokenizer.add_tokens(placeholder_token)
     added_token_id = tokenizer.convert_tokens_to_ids(placeholder_token)
+    
+    # Just so some initial embeddings are assigned to the new token
+    # These will be replaced by inj_embedding later
+    text_encoder.resize_token_embeddings(len(tokenizer)) 
 
     # Preparing example
     example = {}
@@ -111,16 +129,24 @@ def main(args):
         return_tensors="pt",
     ).input_ids
     
-    placeholder_index = torch.arange(orig_input_ids.shape[1])[orig_input_ids == added_token_id]
+    placeholder_index = torch.arange(orig_input_ids.shape[1])[(orig_input_ids == added_token_id).flatten()]
     
     orig_input_ids = orig_input_ids.repeat(args.batch_size, 1)
     orig_index = placeholder_index.repeat(args.batch_size)
 
+    control_image_transform = partial(control_transform, 
+                                      control_image_processor=control_image_processor, 
+                                      width=512, 
+                                      height=512)
+
     # Image
     if args.filelist:
         dset = Imagelist(args.filelist, transform=get_tensor_clip())
+        dset_control = Imagelist(args.filelist, transform=control_image_transform)
     else:
         dset = Imagelist(Path(args.filelist_root) / f'{args.dataset}/{args.source}_train.txt', transform=get_tensor_clip())
+        dset_control = Imagelist(Path(args.filelist_root) / f'{args.dataset}/{args.source}_train.txt', transform=control_image_transform)
+        
     args.root_dir = Path(args.root_dir) / args.dataset / scenario
 
     if args.num_jobs > 1:
@@ -132,19 +158,22 @@ def main(args):
         
     loader = torch.utils.data.DataLoader(
         dset, batch_size=args.batch_size, shuffle=False, pin_memory=True, drop_last=False)
+    
+    loader_control = torch.utils.data.DataLoader(
+        dset_control, batch_size=args.batch_size, shuffle=False, pin_memory=True, drop_last=False)
 
-    for i, batch in enumerate(loader):
+    for i, (batch, batch_control) in enumerate(zip(loader, loader_control)):
         example["pixel_values_clip"] = batch[0]
         example["pixel_values"] = copy.deepcopy(example["pixel_values_clip"])
-
         example["index"] = orig_index[:len(batch[0])]
         example["input_ids"] = orig_input_ids[:len(batch[0])]
         example["pixel_values"] = example["pixel_values"].to(device)
         example["pixel_values_clip"] = example["pixel_values_clip"].to(device).half()
         example["input_ids"] = example["input_ids"].to(device)
         example["index"] = example["index"].to(device).long()
+        example["control_image"] = batch_control[0].to(device=device, dtype=controlnet.dtype)
         
-        ret_imgs = validation(example, tokenizer, image_encoder, text_encoder, unet, mapper, vae, controlnet, control_image_processor, example["pixel_values_clip"].device, 5, token_index=token_index, seed=args.seed)
+        ret_imgs = validation(example, tokenizer, image_encoder, text_encoder, unet, mapper, vae, controlnet, example["pixel_values_clip"].device, 5, token_index=token_index, seed=args.seed)
         
         src_paths = [loader.dataset.imgs[idx] for idx in batch[2]]
         src_paths = [str(Path(p).relative_to(Path(p).parents[1])) for p in src_paths]

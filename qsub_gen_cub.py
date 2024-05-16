@@ -19,16 +19,16 @@ for src, tgt in itertools.permutations(domains, 2):
     else:
         num_jobs = 2
     for job_idx in range(num_jobs):
-        root_dir = '/projectnb/ivc-ml/samarth/projects/synthetic/data/synthetic-cdm/synthetic_data/elite_global_no_bird'
+        root_dir = '/projectnb/ivc-ml/samarth/projects/synthetic/data/synthetic-cdm/synthetic_data/elite_global_controlnet'
         scenario = f'{src[0]}2{tgt[0]}'
         
-        expt_name = f'elite_global_no_bird_{scenario}_job_{job_idx}'
+        expt_name = f'elite_global_controlnet_{scenario}_job_{job_idx}'
         proc_arr = ['qsub']
         proc_arr.extend(get_qsub_options(
             qsub_name=expt_name,
             outfile=Path(root_dir) / dataset / scenario / f'qsub_log_{job_idx}.txt',
             project=PROJECT,
-            duration='6:00:00',
+            duration='12:00:00',
             # gpu_c='4.5',
             gpu_memory='20G',
         ))
@@ -38,7 +38,7 @@ for src, tgt in itertools.permutations(domains, 2):
         proc_arr += ['--source', src]
         proc_arr += ['--target', tgt]
         proc_arr += ['--root_dir', root_dir]
-        proc_arr += ['--batch_size', '12']
+        proc_arr += ['--batch_size', '8']
         proc_arr += ['--num_jobs', str(num_jobs)]
         proc_arr += ['--job_idx', str(job_idx)]
         

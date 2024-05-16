@@ -92,7 +92,6 @@ def validation(example, tokenizer, image_encoder, text_encoder, unet, mapper, va
         do_classifier_free_guidance=True,
         guess_mode=False,
     )
-    
 
     latents = latents.to(example["pixel_values_clip"])
     scheduler.set_timesteps(100)

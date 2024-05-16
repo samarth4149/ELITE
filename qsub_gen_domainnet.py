@@ -9,31 +9,31 @@ from utils_qsub import get_qsub_options
 import itertools
 
 PROJECT = 'ivc-ml'
-NUM_JOBS = 5
+NUM_JOBS = 4
 dataset = 'domainnet'
 domains = ['sketch', 'painting', 'clipart']
 
 for src, tgt in itertools.permutations(domains, 2):
     for job_idx in range(NUM_JOBS):
-        root_dir = '/projectnb/ivc-ml/samarth/projects/synthetic/data/synthetic-cdm/synthetic_data/elite_global_textinv'
+        root_dir = '/projectnb/ivc-ml/samarth/projects/synthetic/data/synthetic-cdm/synthetic_data/elite_global_controlnet'
         scenario = f'{src[0]}2{tgt[0]}'
-        expt_name = f'elite_global_{dataset}_{scenario}_job_{job_idx}'
+        expt_name = f'elite_global_controlnet_{dataset}_{scenario}_job_{job_idx}'
         proc_arr = ['qsub']
         proc_arr.extend(get_qsub_options(
             qsub_name=expt_name,
             outfile=Path(root_dir) / dataset / scenario / f'qsub_log_{job_idx}.txt',
             project=PROJECT,
-            duration='11:50:00',
+            duration='12:00:00',
             # gpu_c='4.5',
             gpu_memory='20G',
         ))
 
-        proc_arr += ['python', 'gen_data_textinv.py']
+        proc_arr += ['python', 'gen_data_controlnet.py']
         proc_arr += ['--dataset', dataset]
         proc_arr += ['--source', src]
         proc_arr += ['--target', tgt]
         proc_arr += ['--root_dir', root_dir]
-        proc_arr += ['--batch_size', '12']
+        proc_arr += ['--batch_size', '8']
         proc_arr += ['--num_jobs', str(NUM_JOBS)]
         proc_arr += ['--job_idx', str(job_idx)]
         
